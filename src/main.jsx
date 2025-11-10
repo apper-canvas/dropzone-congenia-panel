@@ -1,9 +1,13 @@
 import React from "react"
 import ReactDOM from "react-dom/client"
-import { RouterProvider } from "react-router-dom"
-import { router } from "./router"
+import { Provider } from "react-redux"
+import App from "./App.jsx"
+import { store } from "./store/store.js"
 import "./index.css"
+import "react-toastify/dist/ReactToastify.css"
 
 ReactDOM.createRoot(document.getElementById("root")).render(
-  <RouterProvider router={router} />
+  <Provider store={store}>
+    <App />
+  </Provider>
 )

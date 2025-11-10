@@ -60,8 +60,7 @@ const DropZone = ({
 
   const handleFiles = (files) => {
     if (files.length === 0) return;
-
-    // Validate file count
+// Validate file count
     if (files.length > maxFiles) {
       alert(`Maximum ${maxFiles} files allowed`);
       return;
@@ -203,7 +202,7 @@ const DropZone = ({
         </div>
 
         {/* File Requirements */}
-        <div className="space-y-1 text-sm text-gray-400">
+<div className="space-y-1 text-sm text-gray-400">
           {maxFiles > 1 && (
             <p>Up to {maxFiles} files</p>
           )}

@@ -8,12 +8,13 @@ import ApperIcon from "@/components/ApperIcon";
 import Empty from "@/components/ui/Empty";
 import { generateUploadId, createImagePreview } from "@/utils/fileUtils";
 import { uploadService } from "@/services/api/uploadService";
-
+import { configService } from "@/services/api/configService";
 const FileUploader = () => {
   const [files, setFiles] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [config, setConfig] = useState({
-    maxFileSize: 10 * 1024 * 1024, // 10MB
+    max_file_size_c: 10 * 1024 * 1024, // 10MB
     allowedTypes: [
       "image/*",
       "video/*",
@@ -27,27 +28,35 @@ const FileUploader = () => {
       ".zip",
       ".rar"
     ],
-    maxFiles: 10,
-    autoUpload: true
+    max_files_c: 10,
+    auto_upload_c: true
   });
 
-  // Load config from localStorage on mount
+  // Load config from database on mount
   useEffect(() => {
-    const savedConfig = localStorage.getItem("dropzone-config");
-    if (savedConfig) {
+    const loadConfig = async () => {
+      setLoading(true);
       try {
-        const parsed = JSON.parse(savedConfig);
-        setConfig(prev => ({ ...prev, ...parsed }));
+        const dbConfig = await configService.getConfig();
+        setConfig(prev => ({
+          ...prev,
+          max_file_size_c: dbConfig.max_file_size_c,
+          max_files_c: dbConfig.max_files_c,
+          auto_upload_c: dbConfig.auto_upload_c,
+          chunk_size_c: dbConfig.chunk_size_c,
+          retry_attempts_c: dbConfig.retry_attempts_c,
+          timeout_c: dbConfig.timeout_c
+        }));
       } catch (error) {
-        console.error("Failed to parse saved config:", error);
+        console.error("Failed to load config:", error);
+        toast.error("Failed to load configuration");
+      } finally {
+        setLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save config to localStorage when it changes
-  useEffect(() => {
-    localStorage.setItem("dropzone-config", JSON.stringify(config));
-  }, [config]);
+    loadConfig();
+  }, []);
 
   const handleFilesSelected = async (selectedFiles) => {
     // Create upload file objects
@@ -73,7 +82,7 @@ const FileUploader = () => {
     setFiles(prev => [...prev, ...uploadFiles]);
 
     // Auto-upload if enabled
-    if (config.autoUpload) {
+if (config.auto_upload_c) {
       uploadFiles.forEach(uploadFile => {
         startUpload(uploadFile.id);
       });
@@ -214,12 +223,12 @@ const FileUploader = () => {
       </div>
 
       {/* Drop Zone */}
-      <DropZone
+<DropZone
         onFilesSelected={handleFilesSelected}
-        maxFileSize={config.maxFileSize}
+        maxFileSize={config.max_file_size_c}
         allowedTypes={config.allowedTypes}
-        maxFiles={config.maxFiles}
-        disabled={isUploading}
+        maxFiles={config.max_files_c}
+        disabled={isUploading || loading}
       />
 
       {/* Upload Stats & Actions */}
