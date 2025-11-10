@@ -1,4 +1,4 @@
-import { uploadConfigData } from "@/services/mockData/uploadConfig.json";
+import uploadConfigData from "@/services/mockData/uploadConfig.json";
 
 class UploadService {
   constructor() {
