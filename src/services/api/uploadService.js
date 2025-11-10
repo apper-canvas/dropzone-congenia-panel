@@ -6,6 +6,93 @@ class UploadService {
     this.tableName = "upload_file_c";
   }
 
+  // Get files for a specific field key (for ApperFileFieldComponent)
+  async getFilesForField(fieldKey) {
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      const response = await apperClient.fetchRecords(this.tableName, {
+        fields: [
+          {"field": {"Name": "Name"}},
+          {"field": {"Name": "url_c"}},
+          {"field": {"Name": "uploaded_at_c"}},
+          {"field": {"Name": "size_c"}},
+          {"field": {"Name": "type_c"}},
+          {"field": {"Name": "Tags"}}
+        ],
+        where: [{
+          "FieldName": "Tags",
+          "Operator": "Contains", 
+          "Values": [fieldKey],
+          "Include": true
+        }]
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      return response.data || [];
+    } catch (error) {
+      console.error("Error fetching files for field:", error?.response?.data?.message || error.message);
+      throw error;
+    }
+  }
+
+  // Update file field data (for ApperFileFieldComponent)
+  async updateFileField(fieldKey, files) {
+    try {
+      const apperClient = getApperClient();
+      if (!apperClient) {
+        throw new Error("ApperClient not initialized");
+      }
+
+      // Convert UI format files to database format if needed
+      const recordsToUpdate = files.map(file => ({
+        Id: file.id || file.Id,
+        Name: file.name || file.Name,
+        url_c: file.url || file.url_c,
+        uploaded_at_c: file.uploadedAt || file.uploaded_at_c || new Date().toISOString(),
+        size_c: file.size || file.size_c,
+        type_c: file.type || file.type_c,
+        Tags: fieldKey
+      }));
+
+      const response = await apperClient.updateRecord(this.tableName, {
+        records: recordsToUpdate
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      return response.results || [];
+    } catch (error) {
+      console.error("Error updating file field:", error?.response?.data?.message || error.message);
+      throw error;
+    }
+  }
+
+  // Convert API format to UI format for ApperFileFieldComponent
+  convertToUIFormat(apiFiles) {
+    if (!Array.isArray(apiFiles)) return [];
+
+    return apiFiles.map(file => ({
+      id: file.Id,
+      name: file.Name,
+      url: file.url_c,
+      uploadedAt: file.uploaded_at_c,
+      size: file.size_c,
+      type: file.type_c,
+      status: 'success'
+    }));
+  }
+
   // Simulate file upload with realistic delay and database integration
   async upload(uploadFile) {
     try {
@@ -85,7 +172,7 @@ class UploadService {
   }
 
   // Delete uploaded file
-  async deleteFile(fileId) {
+async deleteFile(fileId) {
     try {
       const apperClient = getApperClient();
       if (!apperClient) {
@@ -114,6 +201,38 @@ class UploadService {
       return { success: true, deletedAt: new Date().toISOString() };
     } catch (error) {
       console.error("Error deleting file:", error?.response?.data?.message || error.message);
+      throw error;
+    }
+  }
+
+  // Delete files by field key (for ApperFileFieldComponent)
+  async deleteFilesByField(fieldKey) {
+    try {
+      const files = await this.getFilesForField(fieldKey);
+      const fileIds = files.map(file => file.Id);
+      
+      if (fileIds.length === 0) {
+        return { success: true, deletedCount: 0 };
+      }
+
+      const apperClient = getApperClient();
+      const response = await apperClient.deleteRecord(this.tableName, {
+        RecordIds: fileIds
+      });
+
+      if (!response.success) {
+        console.error(response.message);
+        throw new Error(response.message);
+      }
+
+      const successfulDeletes = response.results?.filter(result => result.success) || [];
+      return { 
+        success: true, 
+        deletedCount: successfulDeletes.length,
+        deletedAt: new Date().toISOString() 
+      };
+    } catch (error) {
+      console.error("Error deleting files by field:", error?.response?.data?.message || error.message);
       throw error;
     }
   }
